@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+<style>
+body { background:#0f172a; color:white; font-family:Arial; }
+.card { background:#1e293b; padding:15px; margin:10px; border-radius:10px; }
+button { margin:5px; padding:6px; border:none; border-radius:6px; }
+.accept { background:#22c55e; }
+.deny { background:#ef4444; }
+.investigate { background:#3b82f6; }
+input { width:100%; margin-top:5px; padding:5px; }
+</style>
+</head>
+
+<body>
+
+<h2>Dashboard</h2>
+<input id="search" placeholder="search">
+
+<div id="reports"></div>
+
+<script>
+const socket = io();
+let reports = [];
+
+async function load(){
+    const res = await fetch("/reports");
+    reports = await res.json();
+    render();
+}
+
+function render(){
+    const search = document.getElementById("search").value.toLowerCase();
+    const div = document.getElementById("reports");
+    div.innerHTML = "";
+
+    reports
+    .filter(r =>
+        (r.status === "pending" || r.status === "investigating") &&
+        r.reportedUser.toLowerCase().includes(search)
+    )
+    .forEach(r=>{
+        const el=document.createElement("div");
+        el.className="card";
+
+        el.innerHTML = `
+        <b>${r.reportedUser}</b><br>
+        ${r.reason}<br>
+        ${r.status}<br>
+        👮 ${r.handledBy||"-"}<br>
+
+        <input id="note-${r.id}" placeholder="note">
+        <input id="admin-${r.id}" placeholder="admin">
+        `;
+
+        el.innerHTML += `
+        <button class="accept" onclick="act(${r.id},'accepted')">ACCEPT</button>
+        <button class="deny" onclick="act(${r.id},'denied')">DENY</button>
+        <button class="investigate" onclick="act(${r.id},'investigating')">INVESTIGATE</button>
+        `;
+
+        div.appendChild(el);
+    });
+}
+
+async function act(id,action){
+    const note=document.getElementById("note-"+id).value;
+    const admin=document.getElementById("admin-"+id).value;
+
+    await fetch("/action",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({id,action,note,admin})
+    });
+}
+
+socket.on("new_report",load);
+socket.on("update_reports",load);
+
+document.getElementById("search").addEventListener("input", render);
+
+load();
+</script>
+
+</body>
+</html>
