@@ -37,7 +37,7 @@ function sendEvent(data){
     listeners = [];
 }
 
-// 📩 RECEIVE REPORT
+// 📩 REPORT
 app.post("/report", (req, res) => {
     const report = {
         id: Date.now(),
@@ -54,11 +54,10 @@ app.post("/report", (req, res) => {
     save(reports);
 
     io.emit("new_report", report);
-
     res.sendStatus(200);
 });
 
-// 🔘 ACTION (dashboard)
+// 🔘 ACTION
 app.post("/action", (req, res) => {
     const { id, action, note, admin } = req.body;
 
@@ -72,7 +71,6 @@ app.post("/action", (req, res) => {
     save(reports);
     io.emit("update_reports");
 
-    // 🔥 POSLAŤ BOTOVI
     sendEvent({
         type: "action",
         report
